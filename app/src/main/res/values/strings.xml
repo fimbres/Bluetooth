@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Expo</string>
+    <string name="connectionreq" >Emparejar dispositivo</string>
+    <string name="server">Iniciar servidor</string>
+    <string name="button">Enviar Mensaje</string>
+    <string name="name" />
+</resources>
