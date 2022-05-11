@@ -6,9 +6,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
-import android.content.Intent;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.ParcelUuid;
 import android.util.Log;
 import android.view.View;
@@ -24,24 +22,23 @@ import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final UUID MY_UUID_INSECURE =
-            UUID.fromString("8ce255c0-200a-11e0-ac64-0800200c9a66");
-
-    private static final int REQUEST_ENABLE_BT = 1;
+    private static final UUID MY_UUID_INSECURE = UUID.fromString("4d955905-0f71-465a-b97d-048241948e79");
     BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
     private BluetoothDevice mmDevice;
-    private UUID deviceUUID;
     ConnectedThread mConnectedThread;
-    private Handler handler;
-
     String TAG = "MainActivity";
     EditText send_data;
     TextView view_data;
-    StringBuilder messages;
 
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        send_data = (EditText) findViewById(R.id.editText);
+        view_data = (TextView) findViewById(R.id.textView);
+    }
 
     public void pairDevice(View v) {
-
         Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
         Log.e("MAinActivity", "" + pairedDevices.size());
         if (pairedDevices.size() > 0) {
@@ -55,13 +52,28 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public void Start_Server(View view) {
+        AcceptThread accept = new AcceptThread();
+        accept.start();
+    }
+
+    public void SendMessage(View v) {
+        byte[] bytes = send_data.getText().toString().getBytes(Charset.defaultCharset());
+        mConnectedThread.write(bytes);
+    }
+
+    private void connected(BluetoothSocket mmSocket) {
+        Log.d(TAG, "connected: Starting.");
+        mConnectedThread = new ConnectedThread(mmSocket);
+        mConnectedThread.start();
+    }
+
     private class ConnectThread extends Thread {
         private BluetoothSocket mmSocket;
 
         public ConnectThread(BluetoothDevice device, UUID uuid) {
             Log.d(TAG, "ConnectThread: started.");
             mmDevice = device;
-            deviceUUID = uuid;
         }
 
         public void run() {
@@ -90,21 +102,6 @@ public class MainActivity extends AppCompatActivity {
             }
             connected(mmSocket);
         }
-
-        public void cancel() {
-            try {
-                Log.d(TAG, "cancel: Closing Client Socket.");
-                mmSocket.close();
-            } catch (IOException e) {
-                Log.e(TAG, "cancel: close() of mmSocket in Connectthread failed. " + e.getMessage());
-            }
-        }
-    }
-
-    private void connected(BluetoothSocket mmSocket) {
-        Log.d(TAG, "connected: Starting.");
-        mConnectedThread = new ConnectedThread(mmSocket);
-        mConnectedThread.start();
     }
 
     private class ConnectedThread extends Thread {
@@ -164,35 +161,6 @@ public class MainActivity extends AppCompatActivity {
                 Log.e(TAG, "write: Error writing to output stream. " + e.getMessage());
             }
         }
-        public void cancel() {
-            try {
-                mmSocket.close();
-            } catch (IOException e) {
-            }
-        }
-    }
-    public void SendMessage(View v) {
-        byte[] bytes = send_data.getText().toString().getBytes(Charset.defaultCharset());
-        mConnectedThread.write(bytes);
-    }
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        send_data = (EditText) findViewById(R.id.editText);
-        view_data = (TextView) findViewById(R.id.textView);
-        if (bluetoothAdapter != null && !bluetoothAdapter.isEnabled()) {
-            Intent enableBtIntent = new
-                    Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-        }
-    }
-
-    public void Start_Server(View view) {
-        AcceptThread accept = new AcceptThread();
-        accept.start();
-
     }
 
     private class AcceptThread extends Thread {
@@ -224,15 +192,5 @@ public class MainActivity extends AppCompatActivity {
             }
             Log.i(TAG, "END mAcceptThread ");
         }
-
-        public void cancel() {
-            Log.d(TAG, "cancel: Canceling AcceptThread.");
-            try {
-                mmServerSocket.close();
-            } catch (IOException e) {
-                Log.e(TAG, "cancel: Close of AcceptThread ServerSocket failed. " + e.getMessage());
-            }
-        }
-
     }
 }
